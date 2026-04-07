@@ -8,8 +8,8 @@ A desktop GUI application for combining image channels (R, G, B, A) from separat
 - Smart loading: automatically populates RGB channels when dropping a color image
 - Value mode: set channels to solid values (0-255) instead of images
 - Real-time preview of merged result
-- Support for 8-bit and 16-bit images
-- Export to PNG, TGA, TIFF, or EXR formats
+- Support for 8-bit and 16-bit images, experimental support for 32-bit images.
+- Export to PNG, TGA, TIFF, or EXR formats, experimental support for other file formats supported by OpenCV library.
 - Resolution mismatch detection and validation
 
 ## Installation
@@ -50,6 +50,10 @@ pyinstaller --noconfirm --onefile --windowed --name "ChannelMerger" --icon "asse
 # Linux
 pyinstaller --noconfirm --onefile --windowed --name "ChannelMerger" --icon "assets/images/app_icon.ico" --add-data "assets:assets" --paths "." --clean src/main.py
 ```
+## Important Note
+This project was developed with the help of various LLMs. It is **NOT** vibe coded. It was not and is not built entirely by *AI*. LLMs were used to fill holes in my knowledge and help code sections I have absolutely no knowledge in.
+
+While the project has been checked by myself for issues, my Python knowledge is mediocre at best, so I encourage you to check out the source instead of relying on pre-built binaries if you have the time/knowledge to do so. To the best of my knowledge it is free of major bugs or issues but as is with any random open source project you fine online, **you use this at your own risk**.
 
 ## License
 

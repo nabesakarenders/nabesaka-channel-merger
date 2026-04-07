@@ -304,6 +304,10 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Resolution Mismatch", f"Cannot export.\n{msg}")
             return
 
+        # Starting save, add notice in status bar
+        self.status_bar.showMessage("Exporting...")
+        self.status_bar.setStyleSheet("")
+
         r = self.widget_r.get_data()
         g = self.widget_g.get_data()
         b = self.widget_b.get_data()
@@ -345,16 +349,12 @@ class MainWindow(QMainWindow):
             self.last_directory = str(Path(path).parent)
             success = save_image(path, merged, target_depth)
             if success:
-                # Users did not like the abruptness of the alert created by QMessageBox
-                # TODO: Can we maybe play a sound too?
-                # QMessageBox.information(self, "Success", f"Saved to {path}")
                 self.status_bar.showMessage(f"Saved to {path}")
                 self.status_bar.setStyleSheet(
                     "QStatusBar { color: #55ff55; font-weight: bold; }"
                 )
                 self.success_sound.play()
             else:
-                # QMessageBox.critical(self, "Error", "Failed to save image.")
                 self.status_bar.showMessage("Failed to save image.")
                 self.status_bar.setStyleSheet(
                     "QStatusBar { color: #ff5555; font-weight: bold; }"
