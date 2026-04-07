@@ -55,6 +55,10 @@ This project was developed with the help of various LLMs. It is **NOT** vibe cod
 
 While the project has been checked by myself for issues, my Python knowledge is mediocre at best, so I encourage you to check out the source instead of relying on pre-built binaries if you have the time/knowledge to do so. To the best of my knowledge it is free of major bugs or issues but as is with any random open source project you fine online, **you use this at your own risk**.
 
+## Known Issues
+
+- Issue with X asset being missing when built for Linux
+
 ## License
 
 MIT
