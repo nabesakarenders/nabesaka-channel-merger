@@ -24,6 +24,7 @@ from src.core.processor import (
     normalize_to_8bit,
     save_image,
 )
+from src.core.utils import resource_path
 from src.ui.channel_widget import ChannelWidget
 from src.ui.styles import DARK_THEME
 
@@ -35,24 +36,20 @@ class MainWindow(QMainWindow):
         self.resize(1280, 720)
 
         # resolve path for assets based on if we are frozen or not
-        if getattr(sys, "frozen", False):
-            assets_path = Path(sys._MEIPASS) / "assets"
-        else:
-            assets_path = Path(__file__).resolve().parent.parent.parent / "assets"
 
         # Add app icon
-        self.setWindowIcon(QIcon(str(assets_path / "images" / "app_icon.png")))
+        self.setWindowIcon(QIcon(resource_path("images/app_icon.png")))
 
         # Create sound effects
         self.success_sound = QSoundEffect()
         self.success_sound.setSource(
-            QUrl.fromLocalFile(assets_path / "sounds" / "success.wav")
+            QUrl.fromLocalFile(resource_path("sounds/success.wav"))
         )
         self.success_sound.setVolume(0.5)
 
         self.error_sound = QSoundEffect()
         self.error_sound.setSource(
-            QUrl.fromLocalFile(assets_path / "sounds" / "error.wav")
+            QUrl.fromLocalFile(resource_path("sounds/error.wav"))
         )
         self.error_sound.setVolume(0.5)
 

@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.core.processor import load_image
+from src.core.utils import resource_path
 from src.ui.elided_label import ElidedLabel
 
 
@@ -134,7 +135,7 @@ class ChannelWidget(QGroupBox):
         self.clear_layout.setContentsMargins(0, 0, 0, 15)
         # Clear button
         self.btn_clear = QPushButton("Clear")
-        self.btn_clear.setIcon(QIcon("./assets/images/clear.svg"))
+        self.btn_clear.setIcon(QIcon(resource_path("images/clear.svg")))
         self.btn_clear.setToolTip("Clear channel")
         self.btn_clear.setEnabled(False)
         self.btn_clear.clicked.connect(self.clear_image)
