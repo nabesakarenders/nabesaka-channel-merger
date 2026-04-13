@@ -238,10 +238,10 @@ def get_supported_formats_for_depth(bit_depth):
         return ["exr", "tiff", "tif", "hdr"]
     elif bit_depth == "16bit":
         # 16-bit is well supported by PNG, TIFF, TGA, EXR
-        return ["png", "tiff", "tif", "tga", "exr", "psd"]
+        return ["png", "tiff", "tif", "tga", "exr"]
     else:
         # 8-bit is supported by almost all formats
-        return ["png", "jpg", "jpeg", "tiff", "tif", "tga", "bmp", "exr", "psd", "webp"]
+        return ["png", "jpg", "jpeg", "tiff", "tif", "tga", "bmp", "exr", "webp"]
 
 
 def get_save_file_filter(bit_depth=None):
@@ -251,9 +251,9 @@ def get_save_file_filter(bit_depth=None):
     if bit_depth == "32bit":
         return "OpenEXR (*.exr);;TIFF (*.tiff *.tif);;HDR (*.hdr)"
     elif bit_depth == "16bit":
-        return "PNG (*.png);;TIFF (*.tiff *.tif);;Targa (*.tga);;OpenEXR (*.exr);;PSD (*.psd)"
+        return "PNG (*.png);;TIFF (*.tiff *.tif);;Targa (*.tga);;OpenEXR (*.exr)"
     else:
-        return "PNG (*.png);;JPEG (*.jpg *.jpeg);;TIFF (*.tiff *.tif);;Targa (*.tga);;BMP (*.bmp);;PSD (*.psd);;WebP (*.webp)"
+        return "PNG (*.png);;JPEG (*.jpg *.jpeg);;TIFF (*.tiff *.tif);;Targa (*.tga);;BMP (*.bmp);;WebP (*.webp)"
 
 
 def save_image(path, data, target_depth=None):

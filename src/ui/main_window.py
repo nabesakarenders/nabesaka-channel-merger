@@ -120,6 +120,14 @@ class MainWindow(QMainWindow):
             "• 32-bit: HDR EXR/TIFF (0.0-1.0+ float)"
         )
 
+        # Clear All button
+        self.btn_clear_all = QPushButton("Clear All Images")
+        self.btn_clear_all.setStyleSheet(
+            "background-color: #5d2c2c; font-weight: bold;"
+        )
+        self.btn_clear_all.setToolTip("Clear all loaded images from all channels")
+        self.btn_clear_all.clicked.connect(self.clear_all_images)
+
         self.btn_export = QPushButton("Export Merged Texture")
         self.btn_export.setMinimumHeight(50)
         self.btn_export.setStyleSheet(
@@ -131,6 +139,7 @@ class MainWindow(QMainWindow):
         self.preview_layout.addWidget(self.lbl_preview, stretch=1)
         self.preview_layout.addWidget(QLabel("Output Bit Depth:"))
         self.preview_layout.addWidget(self.cmb_bit_depth)
+        self.preview_layout.addWidget(self.btn_clear_all)
         self.preview_layout.addWidget(self.btn_export)
 
         self.main_layout.addLayout(self.preview_layout, stretch=1)
@@ -360,3 +369,39 @@ class MainWindow(QMainWindow):
                     "QStatusBar { color: #ff5555; font-weight: bold; }"
                 )
                 self.error_sound.play()
+
+    def clear_all_images(self):
+        """
+        Clears all loaded images from all channel widgets after confirmation.
+        """
+        # Check if there's anything to clear
+        has_images = any(
+            w.is_image_mode and w.current_image_data is not None for w in self.channels
+        )
+
+        if not has_images:
+            self.status_bar.showMessage("No images to clear.")
+            return
+
+        # Show confirmation dialog
+        reply = QMessageBox.question(
+            self,
+            "Clear All Images",
+            "Are you sure you want to clear all loaded images from all channels?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+
+        if reply == QMessageBox.Yes:
+            # Block signals to prevent multiple preview updates
+            for w in self.channels:
+                w.blockSignals(True)
+                w.clear_image()
+                w.blockSignals(False)
+
+            # Single preview update at the end
+            self.request_preview_update()
+            self.status_bar.showMessage("All images cleared.")
+            self.status_bar.setStyleSheet(
+                "QStatusBar { color: #55ff55; font-weight: bold; }"
+            )
