@@ -1,5 +1,5 @@
 ## Texture Channel Merger
-# Version 0.2.2
+# Version 0.3
 # Author: Nabesaka
 # License: MIT
 # IMPORTANT NOTE:

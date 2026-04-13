@@ -22,6 +22,7 @@ from src.core.processor import (
     get_save_file_filter,
     merge_channels,
     normalize_to_8bit,
+    resize_channel,
     save_image,
 )
 from src.core.utils import resource_path
@@ -236,29 +237,33 @@ class MainWindow(QMainWindow):
         return True, "", None  # No images loaded
 
     def update_preview(self):
-        # 1. Validate Resolutions First
-        is_valid, error_msg, shape = self.validate_resolutions()
+        # Check for resolution mismatches
+        resolutions = self.get_resolution_info()
+        has_mismatch = len(resolutions) > 1
 
-        if not is_valid:
-            # Set full error in StatusBar
-            self.status_bar.showMessage(error_msg)
+        # Update status bar based on mismatch state
+        if has_mismatch:
+            # Build mismatch details
+            res_details = []
+            for res, channels in resolutions.items():
+                channel_names = ", ".join([c[0] for c in channels])
+                res_details.append(f"{res[0]}×{res[1]} ({channel_names})")
+            self.status_bar.showMessage(
+                f"Resolution mismatch: {', '.join(res_details)} - You will choose resize option on export."
+            )
             self.status_bar.setStyleSheet(
-                "QStatusBar { color: #ff5555; font-weight: bold; }"
+                "QStatusBar { color: #ffaa55; font-weight: bold; }"
             )
-
-            # Show concise error in Preview
-            self.lbl_preview.setText("Resolution Error!\nSee details below.")
+            # Warning border for preview
             self.lbl_preview.setStyleSheet(
-                "QLabel { color: #ff5555; font-weight: bold; background-color: #1a1a1a; border: 1px solid #553333; padding: 10px; }"
+                "background-color: #1a1a1a; border: 2px solid #ffaa55; color: #888;"
             )
-            return
-
-        # Restore style / Clear error
-        self.status_bar.showMessage("Ready")
-        self.status_bar.setStyleSheet("")  # Reset
-        self.lbl_preview.setStyleSheet(
-            "background-color: #1a1a1a; border: 1px solid #333; color: #888;"
-        )
+        else:
+            self.status_bar.showMessage("Ready")
+            self.status_bar.setStyleSheet("")
+            self.lbl_preview.setStyleSheet(
+                "background-color: #1a1a1a; border: 1px solid #333; color: #888;"
+            )
 
         # Gather data
         r = self.widget_r.get_data()
@@ -267,8 +272,33 @@ class MainWindow(QMainWindow):
         a = self.widget_a.get_data()
 
         # If alpha is None and is in Image Mode, create a solid white channel so image is visible in preview
-        if shape is not None and a is None and self.widget_a.is_image_mode:
+        if a is None and self.widget_a.is_image_mode:
             a = 255
+
+        # For mismatched resolutions, resize all to first available resolution for preview
+        if has_mismatch and resolutions:
+            first_res = list(resolutions.keys())[0]
+            target_w, target_h = first_res
+            r = (
+                resize_channel(r, target_w, target_h)
+                if isinstance(r, np.ndarray)
+                else r
+            )
+            g = (
+                resize_channel(g, target_w, target_h)
+                if isinstance(g, np.ndarray)
+                else g
+            )
+            b = (
+                resize_channel(b, target_w, target_h)
+                if isinstance(b, np.ndarray)
+                else b
+            )
+            a = (
+                resize_channel(a, target_w, target_h)
+                if isinstance(a, np.ndarray)
+                else a
+            )
 
         merged = merge_channels([r, g, b, a])
 
@@ -279,9 +309,14 @@ class MainWindow(QMainWindow):
 
         # Convert to QImage for display
         # QImage needs uint8.
-        # If merged is 16-bit, downsample.
+        # If merged is 16-bit or 32-bit, downsample.
         if merged.dtype == np.uint16:
             preview_data = normalize_to_8bit(merged)
+        elif merged.dtype in [np.float32, np.float64]:
+            from src.core.processor import normalize_to_32bit
+
+            # Convert 32-bit to 8-bit for preview
+            preview_data = (np.clip(merged, 0, 1) * 255).astype(np.uint8)
         else:
             preview_data = merged.astype(np.uint8)
 
@@ -303,17 +338,96 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.lbl_preview.setText(f"Preview Error: {e}")
 
+    def get_resolution_info(self):
+        """
+        Gathers resolution information from all channel widgets.
+
+        Returns:
+            dict: Mapping of resolution tuples to list of (widget_name, data) pairs
+        """
+        resolutions = {}
+
+        for w in self.channels:
+            if w.is_image_mode and w.current_image_data is not None:
+                h, width = w.current_image_data.shape[:2]
+                res_key = (width, h)
+                if res_key not in resolutions:
+                    resolutions[res_key] = []
+                resolutions[res_key].append((w.color_code, w.current_image_data))
+
+        return resolutions
+
+    def show_resolution_mismatch_dialog(self, resolutions):
+        """
+        Shows a dialog when images have mismatched resolutions.
+
+        Args:
+            resolutions: Dict mapping resolution tuples to channel info
+
+        Returns:
+            tuple: (action, target_resolution) where action is 'upscale', 'downscale', or 'cancel'
+        """
+        # Find smallest and largest resolutions
+        res_list = list(resolutions.keys())
+        res_list.sort(key=lambda r: r[0] * r[1])  # Sort by pixel count
+
+        smallest = res_list[0]
+        largest = res_list[-1]
+
+        # Build info string showing all resolutions
+        res_details = []
+        for res, channels in resolutions.items():
+            channel_names = ", ".join([c[0] for c in channels])
+            res_details.append(f"  {res[0]}×{res[1]} ({channel_names})")
+
+        res_str = "\n".join(res_details)
+
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Resolution Mismatch")
+        msg.setText("The loaded images have different resolutions.")
+        msg.setInformativeText(
+            f"Detected resolutions:\n{res_str}\n\nHow would you like to proceed?"
+        )
+
+        btn_upscale = msg.addButton(
+            f"Upscale to {largest[0]}×{largest[1]}", QMessageBox.AcceptRole
+        )
+        btn_downscale = msg.addButton(
+            f"Downscale to {smallest[0]}×{smallest[1]}", QMessageBox.AcceptRole
+        )
+        btn_cancel = msg.addButton("Cancel Export", QMessageBox.RejectRole)
+
+        msg.setDefaultButton(btn_upscale)
+        msg.setIcon(QMessageBox.Warning)
+
+        msg.exec()
+
+        clicked = msg.clickedButton()
+
+        if clicked == btn_upscale:
+            return ("upscale", largest)
+        elif clicked == btn_downscale:
+            return ("downscale", smallest)
+        else:
+            return ("cancel", None)
+
     def export_image(self):
-        # Validate before export
-        is_valid, msg, _ = self.validate_resolutions()
-        if not is_valid:
-            QMessageBox.critical(self, "Resolution Mismatch", f"Cannot export.\n{msg}")
-            return
+        # Check for resolution mismatches
+        resolutions = self.get_resolution_info()
 
-        # Starting save, add notice in status bar
-        self.status_bar.showMessage("Exporting...")
-        self.status_bar.setStyleSheet("")
+        target_resolution = None
 
+        if len(resolutions) > 1:
+            # Mismatch detected - ask user
+            action, target_resolution = self.show_resolution_mismatch_dialog(
+                resolutions
+            )
+            if action == "cancel":
+                self.status_bar.showMessage("Export cancelled.")
+                return
+            # action is 'upscale' or 'downscale', target_resolution is set
+
+        # Gather channel data
         r = self.widget_r.get_data()
         g = self.widget_g.get_data()
         b = self.widget_b.get_data()
@@ -323,6 +437,31 @@ class MainWindow(QMainWindow):
         # It is unlikely the user would want to export a transparent image and they can set to 'value' mode if they want to export a fully transparent image for any reason
         if a is None and self.widget_a.is_image_mode:
             a = 255
+
+        # Apply resizing if needed
+        if target_resolution is not None:
+            target_w, target_h = target_resolution
+            r = (
+                resize_channel(r, target_w, target_h)
+                if isinstance(r, np.ndarray)
+                else r
+            )
+            g = (
+                resize_channel(g, target_w, target_h)
+                if isinstance(g, np.ndarray)
+                else g
+            )
+            b = (
+                resize_channel(b, target_w, target_h)
+                if isinstance(b, np.ndarray)
+                else b
+            )
+            a = (
+                resize_channel(a, target_w, target_h)
+                if isinstance(a, np.ndarray)
+                else a
+            )
+            self.status_bar.showMessage(f"Resized to {target_w}×{target_h} for export.")
 
         merged = merge_channels([r, g, b, a])
 

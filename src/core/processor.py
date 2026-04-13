@@ -140,6 +140,43 @@ def create_solid_channel(value, width, height, is_16bit=False):
     return np.full((height, width), value, dtype=dtype)
 
 
+def resize_channel(data, target_width, target_height):
+    """
+    Resizes image data to target dimensions with appropriate interpolation.
+
+    Args:
+        data: numpy array (H, W) or (H, W, C)
+        target_width: Target width in pixels
+        target_height: Target height in pixels
+
+    Returns:
+        Resized numpy array
+    """
+    if data is None:
+        return None
+
+    current_h, current_w = data.shape[:2]
+
+    # No resize needed
+    if current_h == target_height and current_w == target_width:
+        return data
+
+    # Select interpolation based on bit depth and scaling direction
+    is_upscaling = target_width > current_w or target_height > current_h
+
+    if data.dtype in [np.float32, np.float64]:
+        # For HDR/32-bit, use LANCZOS4 for best quality
+        interpolation = cv2.INTER_LANCZOS4
+    elif is_upscaling:
+        # For upscaling integer types
+        interpolation = cv2.INTER_CUBIC
+    else:
+        # For downscaling integer types, AREA preserves detail better
+        interpolation = cv2.INTER_AREA
+
+    return cv2.resize(data, (target_width, target_height), interpolation=interpolation)
+
+
 def merge_channels(channels, target_depth=None):
     """
     Merges a list of 4 distinct single-channel arrays/values into one RGBA image.

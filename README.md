@@ -6,11 +6,11 @@ A desktop GUI application for combining image channels (R, G, B, A) from separat
 
 - Load images for individual R, G, B, or Alpha channels
 - Smart loading: automatically populates RGB channels when dropping a color image
-- Value mode: set channels to solid values (0-255) instead of images
+- Value mode: set channels to solid values (0-255) instead of images, will be upsampled to match bit depth
 - Real-time preview of merged result
 - Support for 8-bit and 16-bit images, experimental support for 32-bit images.
 - Export to PNG, TGA, TIFF, or EXR formats, experimental support for other file formats supported by OpenCV library.
-- Resolution mismatch detection and validation
+- Warning about mismatched resolution, option to upscale or downscale on save.
 
 ## Installation
 
